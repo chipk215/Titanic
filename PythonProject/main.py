@@ -82,6 +82,16 @@ def handle_cabin_missing_values(df):
     return df
 
 
+def handle_sibsp_missing_values(df):
+    df.loc[df.SibSp.isnull(), 'SibSp'] = 0
+    return df
+
+
+def handle_parch_missing_values(df):
+    df.loc[df.Parch.isnull(), 'Parch'] = 0
+    return df
+
+
 def handle_missing_features(missing_features, df):
     if len(missing_features) == 0:
         return df
@@ -89,7 +99,9 @@ def handle_missing_features(missing_features, df):
     feature_handlers = {'Age': handle_age_missing_values,
                         'Fare': handle_fare_missing_values,
                         'Embarked': handle_embark_missing_values,
-                        'Cabin': handle_cabin_missing_values}
+                        'Cabin': handle_cabin_missing_values,
+                        'SibSp': handle_sibsp_missing_values,
+                        'Parch': handle_parch_missing_values}
 
     for feature in missing_features:
         print("Feature missing data:", feature)
@@ -110,8 +122,10 @@ def process_training_data(df_train):
     df_train = pd.get_dummies(df_train, columns=['Sex', 'Embarked', 'Cabin'], drop_first=True)
     y_predict = df_train['Survived']
 
+    # The family feature did not result in a better training score
+    df_train['Family'] = df_train['SibSp'] + df_train['Parch']
     # Drop PassengerId, Survived, Name and Ticket features for use in model
-    predict_features = df_train.drop(['PassengerId', 'Survived', 'Name', 'Ticket'], axis=1)
+    predict_features = df_train.drop(['PassengerId', 'Survived', 'Name', 'Ticket', 'SibSp', 'Parch'], axis=1)
 
     train_X, val_X, train_y, val_y = train_test_split(predict_features, y_predict,  random_state=214)
     tree_count = 1000
@@ -162,7 +176,7 @@ def run_main():
     df_train, df_test = read_data_files()
     rf_classifier, training_features = process_training_data(df_train)
     # Predict survivors using test data
-    process_test_data(df_test, rf_classifier, training_features)
+    # process_test_data(df_test, rf_classifier, training_features)
 
 
 if __name__ == "__main__":
