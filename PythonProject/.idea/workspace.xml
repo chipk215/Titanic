@@ -53,7 +53,7 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1052">
+            <state relative-caret-position="1580">
               <caret line="91" column="83" selection-start-line="91" selection-start-column="83" selection-end-line="91" selection-end-column="83" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
@@ -87,10 +87,10 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1914" />
-    <option name="y" value="41" />
-    <option name="width" value="1934" />
-    <option name="height" value="972" />
+    <option name="x" value="1912" />
+    <option name="y" value="77" />
+    <option name="width" value="1547" />
+    <option name="height" value="777" />
   </component>
   <component name="ProjectView">
     <navigator proportions="" version="1">
@@ -202,7 +202,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1915" y="33" width="1547" height="777" extended-state="0" />
+    <frame x="1912" y="77" width="1547" height="777" extended-state="0" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.2145259" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -218,7 +218,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.32608697" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.32659408" />
       <window_info anchor="bottom" id="Python Console" order="12" weight="0.42768273" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -299,7 +299,7 @@
     <entry file="file://$PROJECT_DIR$/results/test_results.csv" />
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1052">
+        <state relative-caret-position="1580">
           <caret line="91" column="83" selection-start-line="91" selection-start-column="83" selection-end-line="91" selection-end-column="83" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
