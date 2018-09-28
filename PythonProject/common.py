@@ -97,3 +97,22 @@ def handle_missing_features(missing_features, df):
             handler = feature_handlers[feature]
             df = handler(df)
     return df
+
+
+def join_feature_name_with_importance_value(features, importances):
+    '''
+    Join via a list of tuples, feature names with their importance values
+    :param features: data frame whose features are represented by columns used by classifier
+    :param importances: feature importance scores assigned by classifier
+    :return: sorted list (highest importances first) of feature,importance tuples
+    '''
+    if features.columns.shape[0] != importances.shape[0]:
+        return []
+
+    feature_importances = []
+    for item in range(features.columns.shape[0]):
+        feature_importances.append((features.columns[item], importances[item]))
+    feature_importances_sorted = sorted(feature_importances, reverse=True, key=lambda kv: kv[1])
+
+    return feature_importances_sorted
+
