@@ -5,36 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
 
 
-def process_training_data(df_train):
-    missing_features = common.get_missing_feature_list(df_train)
-    df_train = common.handle_missing_features(missing_features, df_train)
-    # replace Sex attribute with numeric encoding
-    df_train = pd.get_dummies(df_train, columns=['Sex', 'Embarked'], drop_first=True)
-    y_predict = df_train['Survived']
-
-    # Convert titles to categories
-    df_train['Title'] = common.extract_title(df_train)
-    df_train['Title'] = df_train.Title.apply(lambda x: common.map_title(x))
-    df_train = pd.get_dummies(df_train, columns=['Title'], drop_first=True)
-    # Drop PassengerId, Survived, Name and Ticket features for use in model
-    predict_features = df_train.drop(['PassengerId', 'Survived', 'Name', 'Cabin'], axis=1)
-
-    predict_features = common.identify_group_tickets(predict_features)
-    predict_features = predict_features.drop(['Ticket'], axis=1)
-
-    train_X, val_X, train_y, val_y = train_test_split(predict_features, y_predict,  random_state=42)
-    tree_count = 1000
-    rf_classifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
-                                           min_samples_leaf=1, bootstrap=True, random_state=42)
-    rf_classifier.fit(train_X, train_y)
-    score = rf_classifier.score(train_X, train_y)
-    print("Validation Model Score= ", score)
-    survivor_predictions = rf_classifier.predict(val_X)
-    print(confusion_matrix(val_y, survivor_predictions))
-    tn, fp, fn, tp = confusion_matrix(val_y, survivor_predictions).ravel()
-    training_accuracy = common.compute_accuracy(tn, tp, val_X.shape[0])
-    print("Validation Training Accuracy =", training_accuracy)
-
+def analyze_training_results(df_train, val_X, val_y,  survivor_predictions):
     training_records = df_train.loc[val_X.index.values]
     passengerIds = training_records['PassengerId']
 
@@ -43,63 +14,10 @@ def process_training_data(df_train):
     validation_result['Survived'] = val_y
     validation_result['Prediction'] = survivor_predictions
 
-    return rf_classifier, predict_features, validation_result
-
-
-def process_test_data(df_test, rf_classifier, training_features):
-    # Predict survivors using test data
-    missing_features = common.get_missing_feature_list(df_test)
-
-    df_test = common.handle_missing_features(missing_features, df_test)
-    # replace categorical features with numeric encoding
-    df_test = pd.get_dummies(df_test, columns=['Sex', 'Embarked'], drop_first=True)
-
-    # Convert titles to categories
-    df_test['Title'] = common.extract_title(df_test)
-    df_test['Title'] = df_test.Title.apply(lambda x: common.map_title(x))
-    df_test = pd.get_dummies(df_test, columns=['Title'], drop_first=True)
-
-    # Drop PassengerId, Name and Ticket features for use in model
-    predict_features = df_test.drop(['PassengerId', 'Name','Cabin'], axis=1)
-
-    predict_features = common.identify_group_tickets(predict_features)
-    predict_features = predict_features.drop(['Ticket'], axis=1)
-
-    # Ensure training features and test features match.
-    # The issue is that test data may not have a specific instance for a categorical feature that
-    # has been represented as a dummy
-    test_features = list(predict_features)
-    missing_features = list(set(training_features).difference(test_features))
-    for feature in missing_features:
-        predict_features[feature] = 0
-
-    test_predictions = rf_classifier.predict(predict_features)
-
-    passenger_ids = df_test['PassengerId']
-    print(type(test_predictions), test_predictions.shape)
-    result = pd.DataFrame(passenger_ids)
-    result['Survived'] = test_predictions
-
-    result.to_csv('results/test_results.csv', encoding='utf-8', index=False)
-
-
-def run_training_model():
-    df_train, df_test = common.read_data_files()
-    rf_classifier, rf_training_features, rf_results = process_training_data(df_train)
-
-    importances = rf_classifier.feature_importances_
-    feature_importances = common.join_feature_name_with_importance_value(rf_training_features, importances)
-    print(feature_importances)
-    return rf_classifier, rf_training_features, rf_results
-
-
-def run_main():
-    rf_classifier, rf_training_features, rf_results = run_training_model()
-
     df = pd.DataFrame()
-    df['PassengerId'] = rf_results['PassengerId']
-    df['Survived'] = rf_results['Survived']
-    df['RF_Predict'] = rf_results['Prediction']
+    df['PassengerId'] = validation_result['PassengerId']
+    df['Survived'] = validation_result['Survived']
+    df['RF_Predict'] = validation_result['Prediction']
     df.to_csv('results/rf_validation_results.csv', encoding='utf-8', index=False)
 
     # re-read the data
@@ -119,15 +37,64 @@ def run_main():
     list_correct_predictions = correct_passenger_ids.tolist()
     correct_passengers = df_train[df_train['PassengerId'].isin(list_correct_predictions)]
 
-    # Predict survivors using test data
-    # process_test_data(df_test, rf_classifier, training_features_list)
-    pass
+
+def run_model():
+    df_train, df_test = common.read_data_files()
+    missing_training_features = common.get_missing_feature_list(df_train)
+    df_train = common.handle_missing_features(missing_training_features, df_train)
+    y_predict = df_train['Survived']
+
+    missing_test_features = common.get_missing_feature_list(df_test)
+    df_test = common.handle_missing_features(missing_test_features, df_test)
+
+    # Convert titles to categories
+    df_train['Title'] = common.convert_titles_to_categories(df_train)
+    df_train = pd.get_dummies(df_train, columns=['Title', 'Sex'], drop_first=True)
+    df_test['Title'] = common.convert_titles_to_categories(df_test)
+    df_test = pd.get_dummies(df_test, columns=['Title', 'Sex'], drop_first=True)
+
+    # Generate grouped tickets feature
+    df_train = common.identify_group_tickets(df_train)
+    df_test = common.identify_group_tickets(df_test)
+
+    # Drop PassengerId, Name and Ticket features for use in model
+    predict_features_train = df_train.drop(['PassengerId', 'Survived',
+                                            'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
+    predict_features_test = df_test.drop(['PassengerId', 'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
+
+    # Fit the model and make training predictions
+    train_X, val_X, train_y, val_y = train_test_split(predict_features_train, y_predict, random_state=42)
+    tree_count = 1000
+    rf_classifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
+                                           min_samples_leaf=1, bootstrap=True, random_state=42)
+    rf_classifier.fit(train_X, train_y)
+    score = rf_classifier.score(train_X, train_y)
+    print("Validation Model Score= ", score)
+    survivor_predictions = rf_classifier.predict(val_X)
+    print(confusion_matrix(val_y, survivor_predictions))
+    tn, fp, fn, tp = confusion_matrix(val_y, survivor_predictions).ravel()
+    training_accuracy = common.compute_accuracy(tn, tp, val_X.shape[0])
+    print("Validation Training Accuracy =", training_accuracy)
+
+    common.display_important_features(rf_classifier, predict_features_train)
+
+    # Predict test features with model
+    # Ensure training features and test features match.
+    # The issue is that test data may not have a specific instance for a categorical feature that
+    # has been represented as a dummy
+    test_features = list(predict_features_test)
+    train_features = list(predict_features_train)
+    missing_features = list(set(train_features).difference(test_features))
+    for feature in missing_features:
+        predict_features_test[feature] = 0
+
+    test_predictions = rf_classifier.predict(predict_features_test)
+    common.create_results_submission_file(df_test, test_predictions)
+
+    return rf_classifier
 
 
 if __name__ == '__main__':
-    # run_main()
-    df_train, df_test = common.read_data_files()
-    rf_classifier, rf_training_features, rf_results = run_training_model()
-    training_features_list = list(rf_training_features)
-    process_test_data(df_test, rf_classifier, training_features_list)
+    run_model()
+
 

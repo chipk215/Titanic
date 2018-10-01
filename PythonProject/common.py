@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import datetime
 
 def compute_accuracy(tn,tp, observation_count):
     return (tn+tp)/float(observation_count)
@@ -151,4 +151,25 @@ def map_title(title):
 
     return title_dictionary.get(title, "Other")
 
+
+def convert_titles_to_categories(df):
+    df['Title'] = extract_title(df)
+    df['Title'] = df.Title.apply(lambda x: map_title(x))
+    return df['Title']
+
+
+def create_results_submission_file(df_test, test_predictions):
+    passenger_ids = df_test['PassengerId']
+    print(type(test_predictions), test_predictions.shape)
+    result = pd.DataFrame(passenger_ids)
+    result['Survived'] = test_predictions
+    date_time_string = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+    file_name = 'results/test_results_' + date_time_string + '.csv'
+    result.to_csv(file_name, encoding='utf-8', index=False)
+
+
+def display_important_features(classifier, features):
+    importances = classifier.feature_importances_
+    feature_importances = join_feature_name_with_importance_value(features, importances)
+    print(feature_importances)
 
