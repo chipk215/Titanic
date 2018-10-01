@@ -116,3 +116,39 @@ def join_feature_name_with_importance_value(features, importances):
 
     return feature_importances_sorted
 
+
+def identify_group_tickets(df):
+    same_ticket = df.Ticket.value_counts()
+    df['GroupTicket'] = df.Ticket.apply(lambda x: 1 if same_ticket[x] > 1 else 0)
+    return df
+
+
+def extract_title(df):
+    return df.Name.apply(lambda x: x.partition(',')[-1].split()[0])
+
+
+def map_title(title):
+    title_dictionary = {
+        "Mr.": "Mr",
+        "Miss.": "F_Unwed",
+        "Mlle.": "F_Unwed",
+        "Ms.": "F_Unwed",
+        "Mrs.": "F_Wed",
+        "Mme.": "F_Wed",
+        "Master.": "Master",
+        "Rev.": "Religon",
+        "Dr.": "Professional",
+        "Col.": "Professional",
+        "Major.": "Professional",
+        "Capt.": "Professional",
+        "Lady.": "Royalty",
+        "Sir.": "Royalty",
+        "the": "Royalty",
+        "Jonkheer.": "Royalty",
+        "Don.": "Royalty",
+        "Dona.": "Royalty"
+    }
+
+    return title_dictionary.get(title, "Other")
+
+

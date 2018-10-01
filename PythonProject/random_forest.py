@@ -12,10 +12,17 @@ def process_training_data(df_train):
     df_train = pd.get_dummies(df_train, columns=['Sex', 'Embarked'], drop_first=True)
     y_predict = df_train['Survived']
 
+    # Convert titles to categories
+    df_train['Title'] = common.extract_title(df_train)
+    df_train['Title'] = df_train.Title.apply(lambda x: common.map_title(x))
+    df_train = pd.get_dummies(df_train, columns=['Title'], drop_first=True)
     # Drop PassengerId, Survived, Name and Ticket features for use in model
-    predict_features = df_train.drop(['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin'], axis=1)
+    predict_features = df_train.drop(['PassengerId', 'Survived', 'Name', 'Cabin'], axis=1)
 
-    train_X, val_X, train_y, val_y = train_test_split(predict_features, y_predict,  random_state=0)
+    predict_features = common.identify_group_tickets(predict_features)
+    predict_features = predict_features.drop(['Ticket'], axis=1)
+
+    train_X, val_X, train_y, val_y = train_test_split(predict_features, y_predict,  random_state=42)
     tree_count = 1000
     rf_classifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
                                            min_samples_leaf=1, bootstrap=True, random_state=42)
@@ -36,10 +43,6 @@ def process_training_data(df_train):
     validation_result['Survived'] = val_y
     validation_result['Prediction'] = survivor_predictions
 
-    # train model with all of the training samples
-    rf_classifier.fit(predict_features, y_predict)
-    score = rf_classifier.score(predict_features,y_predict)
-    print("Training Model Score= ", score)
     return rf_classifier, predict_features, validation_result
 
 
@@ -49,9 +52,18 @@ def process_test_data(df_test, rf_classifier, training_features):
 
     df_test = common.handle_missing_features(missing_features, df_test)
     # replace categorical features with numeric encoding
-    df_test = pd.get_dummies(df_test, columns=['Sex', 'Embarked', 'Cabin'], drop_first=True)
+    df_test = pd.get_dummies(df_test, columns=['Sex', 'Embarked'], drop_first=True)
+
+    # Convert titles to categories
+    df_test['Title'] = common.extract_title(df_test)
+    df_test['Title'] = df_test.Title.apply(lambda x: common.map_title(x))
+    df_test = pd.get_dummies(df_test, columns=['Title'], drop_first=True)
+
     # Drop PassengerId, Name and Ticket features for use in model
-    predict_features = df_test.drop(['PassengerId', 'Name', 'Ticket'], axis=1)
+    predict_features = df_test.drop(['PassengerId', 'Name','Cabin'], axis=1)
+
+    predict_features = common.identify_group_tickets(predict_features)
+    predict_features = predict_features.drop(['Ticket'], axis=1)
 
     # Ensure training features and test features match.
     # The issue is that test data may not have a specific instance for a categorical feature that
@@ -77,13 +89,12 @@ def run_training_model():
 
     importances = rf_classifier.feature_importances_
     feature_importances = common.join_feature_name_with_importance_value(rf_training_features, importances)
-
+    print(feature_importances)
     return rf_classifier, rf_training_features, rf_results
 
 
 def run_main():
     rf_classifier, rf_training_features, rf_results = run_training_model()
-
 
     df = pd.DataFrame()
     df['PassengerId'] = rf_results['PassengerId']
@@ -115,5 +126,8 @@ def run_main():
 
 if __name__ == '__main__':
     # run_main()
-    run_training_model()
+    df_train, df_test = common.read_data_files()
+    rf_classifier, rf_training_features, rf_results = run_training_model()
+    training_features_list = list(rf_training_features)
+    process_test_data(df_test, rf_classifier, training_features_list)
 
