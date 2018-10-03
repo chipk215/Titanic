@@ -66,23 +66,24 @@ def run_model():
     df_train['Title'] = common.convert_titles_to_categories(df_train)
     df_test['Title'] = common.convert_titles_to_categories(df_test)
 
-    missing_training_features = common.get_missing_feature_list(df_train)
-    df_train = common.handle_missing_features(missing_training_features, df_train)
-    y_predict = df_train['Survived']
-
-    missing_test_features = common.get_missing_feature_list(df_test)
-    df_test = common.handle_missing_features(missing_test_features, df_test)
-
-    # Convert titles to categories
-    df_train = pd.get_dummies(df_train, columns=['Title', 'Sex'], drop_first=True)
-    df_test = pd.get_dummies(df_test, columns=['Title', 'Sex'], drop_first=True)
-
     # Generate grouped tickets feature
     df_train = common.identify_group_tickets(df_train)
     df_test = common.identify_group_tickets(df_test)
 
     df_train = assign_passenger_fare(df_train)
     df_test = assign_passenger_fare(df_test)
+
+    missing_training_features = common.get_missing_feature_list(df_train)
+    df_train = common.handle_missing_features(missing_training_features, df_train)
+
+    missing_test_features = common.get_missing_feature_list(df_test)
+    df_test = common.handle_missing_features(missing_test_features, df_test)
+
+    y_predict = df_train['Survived']
+
+    # Convert titles to categories
+    df_train = pd.get_dummies(df_train, columns=['Title', 'Sex'], drop_first=True)
+    df_test = pd.get_dummies(df_test, columns=['Title', 'Sex'], drop_first=True)
 
     # Drop PassengerId, Name and Ticket features for use in model
     predict_features_train = df_train.drop(['PassengerId', 'Survived', 'Fare',

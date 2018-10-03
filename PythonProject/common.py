@@ -98,6 +98,21 @@ def handle_cabin_missing_values(df):
     return df
 
 
+def handle_missing_passenger_fares(df):
+    p1_fares = df[df['Pclass'] == 1]['PassengerFare']
+    p1_mean = np.mean(p1_fares)
+    p2_fares = df[df['Pclass'] == 2]['PassengerFare']
+    p2_mean = np.mean(p2_fares)
+    p3_fares = df[df['Pclass'] == 3]['PassengerFare']
+    p3_mean = np.mean(p3_fares)
+
+    df.loc[(df.PassengerFare.isnull() & (df.Pclass == 1)), 'PassengerFare'] = p1_mean
+    df.loc[(df.PassengerFare.isnull() & (df.Pclass == 2)), 'PassengerFare'] = p2_mean
+    df.loc[(df.PassengerFare.isnull() & (df.Pclass == 3)), 'PassengerFare'] = p3_mean
+
+    return df
+
+
 def handle_missing_features(missing_features, df):
     if len(missing_features) == 0:
         return df
@@ -105,7 +120,8 @@ def handle_missing_features(missing_features, df):
     feature_handlers = {'Age':  handle_missing_age_values,
                         'Fare': handle_fare_missing_values,
                         'Embarked': handle_embark_missing_values,
-                        'Cabin': handle_cabin_missing_values}
+                        'Cabin': handle_cabin_missing_values,
+                        'PassengerFare': handle_missing_passenger_fares}
 
     for feature in missing_features:
         print("Feature missing data:", feature)
@@ -116,12 +132,12 @@ def handle_missing_features(missing_features, df):
 
 
 def join_feature_name_with_importance_value(features, importances):
-    '''
+    """
     Join via a list of tuples, feature names with their importance values
     :param features: data frame whose features are represented by columns used by classifier
     :param importances: feature importance scores assigned by classifier
     :return: sorted list (highest importances first) of feature,importance tuples
-    '''
+    """
     if features.columns.shape[0] != importances.shape[0]:
         return []
 
