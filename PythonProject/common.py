@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import datetime
 
+
 def compute_accuracy(tn,tp, observation_count):
     return (tn+tp)/float(observation_count)
 
@@ -33,6 +34,18 @@ def handle_embark_missing_values(df):
     return df
 
 
+def handle_missing_age_values(df):
+
+    def impute_age_from_matched_titles(title_string):
+        same_titles = df.loc[(df['Title'] == title_string) & (~df.Age.isnull())]
+        mean_age = np.mean(same_titles['Age'])
+        return mean_age
+
+    df.loc[df.Age.isnull(),'Age'] = df.loc[df.Age.isnull()].Title.apply(lambda x: impute_age_from_matched_titles(x))
+
+    return df
+
+
 def handle_age_missing_values(df):
     """
     Replace missing age values for passengers using the average age of persons in the same passenger class.
@@ -41,6 +54,9 @@ def handle_age_missing_values(df):
     :param df: dataframe containing samples
     :return: updated dataframe
     """
+
+    handle_missing_age_values(df)
+
     p1_ages = df[df['Pclass'] == 1]['Age']
     p1_mean = np.mean(p1_ages)
     p2_ages = df[df['Pclass'] == 2]['Age']
@@ -86,7 +102,7 @@ def handle_missing_features(missing_features, df):
     if len(missing_features) == 0:
         return df
 
-    feature_handlers = {'Age': handle_age_missing_values,
+    feature_handlers = {'Age':  handle_missing_age_values,
                         'Fare': handle_fare_missing_values,
                         'Embarked': handle_embark_missing_values,
                         'Cabin': handle_cabin_missing_values}

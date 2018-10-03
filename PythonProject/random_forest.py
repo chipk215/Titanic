@@ -3,9 +3,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
+from sklearn import tree
 
 
-def analyze_training_results(df_train, val_X, val_y,  survivor_predictions):
+def analyze_training_results(df_train, val_X, val_y, survivor_predictions):
     training_records = df_train.loc[val_X.index.values]
     passengerIds = training_records['PassengerId']
 
@@ -38,8 +39,33 @@ def analyze_training_results(df_train, val_X, val_y,  survivor_predictions):
     correct_passengers = df_train[df_train['PassengerId'].isin(list_correct_predictions)]
 
 
+def assign_passenger_fare(df):
+    unique_tickets = df.Ticket.value_counts()
+    passengers_on_ticket = df.Ticket.apply(lambda x: unique_tickets[x])
+    df['PassengerFare'] = df.Fare / passengers_on_ticket
+    return df
+
+
+def visualize_a_tree(classifier, training_data):
+    """
+    From the command line run: dot -Tpng tree_dot.dot -o tree.png
+    :param classifier:
+    :param training_data:
+    :return:
+    """
+    estimators = classifier.estimators_
+    sample_tree = estimators[10]
+    with open("results/tree_dot.dot", "w") as f:
+        tree.export_graphviz(sample_tree, out_file=f, feature_names=training_data.columns.values)
+
+
 def run_model():
     df_train, df_test = common.read_data_files()
+
+    # need title to compute missing ages
+    df_train['Title'] = common.convert_titles_to_categories(df_train)
+    df_test['Title'] = common.convert_titles_to_categories(df_test)
+
     missing_training_features = common.get_missing_feature_list(df_train)
     df_train = common.handle_missing_features(missing_training_features, df_train)
     y_predict = df_train['Survived']
@@ -48,25 +74,27 @@ def run_model():
     df_test = common.handle_missing_features(missing_test_features, df_test)
 
     # Convert titles to categories
-    df_train['Title'] = common.convert_titles_to_categories(df_train)
     df_train = pd.get_dummies(df_train, columns=['Title', 'Sex'], drop_first=True)
-    df_test['Title'] = common.convert_titles_to_categories(df_test)
     df_test = pd.get_dummies(df_test, columns=['Title', 'Sex'], drop_first=True)
 
     # Generate grouped tickets feature
     df_train = common.identify_group_tickets(df_train)
     df_test = common.identify_group_tickets(df_test)
 
+    df_train = assign_passenger_fare(df_train)
+    df_test = assign_passenger_fare(df_test)
+
     # Drop PassengerId, Name and Ticket features for use in model
-    predict_features_train = df_train.drop(['PassengerId', 'Survived',
+    predict_features_train = df_train.drop(['PassengerId', 'Survived', 'Fare',
                                             'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
-    predict_features_test = df_test.drop(['PassengerId', 'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
+    predict_features_test = df_test.drop(['PassengerId', 'Name', 'Fare', 'Cabin',
+                                          'Ticket', 'Embarked'], axis=1)
 
     # Fit the model and make training predictions
     train_X, val_X, train_y, val_y = train_test_split(predict_features_train, y_predict, random_state=42)
     tree_count = 1000
-    rf_classifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
-                                           min_samples_leaf=1, bootstrap=True, random_state=42)
+    rf_classifier: RandomForestClassifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
+                                                                   min_samples_leaf=1, bootstrap=True, random_state=42)
     rf_classifier.fit(train_X, train_y)
     score = rf_classifier.score(train_X, train_y)
     print("Validation Model Score= ", score)
@@ -77,6 +105,9 @@ def run_model():
     print("Validation Training Accuracy =", training_accuracy)
 
     common.display_important_features(rf_classifier, predict_features_train)
+
+    # Examine an estimator
+    # visualize_a_tree(rf_classifier,train_X)
 
     # Predict test features with model
     # Ensure training features and test features match.
@@ -96,5 +127,3 @@ def run_model():
 
 if __name__ == '__main__':
     run_model()
-
-
