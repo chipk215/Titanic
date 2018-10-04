@@ -63,37 +63,37 @@ def run_model():
     df_train, df_test = common.read_data_files()
 
     # need title to compute missing ages
-    df_train['Title'] = common.convert_titles_to_categories(df_train)
-    df_test['Title'] = common.convert_titles_to_categories(df_test)
+    # df_train['Title'] = common.convert_titles_to_categories(df_train)
+    # df_test['Title'] = common.convert_titles_to_categories(df_test)
 
     # Generate grouped tickets feature
-    df_train = common.identify_group_tickets(df_train)
-    df_test = common.identify_group_tickets(df_test)
+    # df_train = common.identify_group_tickets(df_train)
+    # df_test = common.identify_group_tickets(df_test)
 
-    df_train = assign_passenger_fare(df_train)
-    df_test = assign_passenger_fare(df_test)
+    # df_train = assign_passenger_fare(df_train)
+    # df_test = assign_passenger_fare(df_test)
 
-    missing_training_features = common.get_missing_feature_list(df_train)
-    df_train = common.handle_missing_features(missing_training_features, df_train)
+    # missing_training_features = common.get_missing_feature_list(df_train)
+    # df_train = common.handle_missing_features(missing_training_features, df_train)
 
-    missing_test_features = common.get_missing_feature_list(df_test)
-    df_test = common.handle_missing_features(missing_test_features, df_test)
+    # missing_test_features = common.get_missing_feature_list(df_test)
+    # df_test = common.handle_missing_features(missing_test_features, df_test)
 
     y_predict = df_train['Survived']
 
     # Convert titles to categories
-    df_train = pd.get_dummies(df_train, columns=['Title', 'Sex'], drop_first=True)
-    df_test = pd.get_dummies(df_test, columns=['Title', 'Sex'], drop_first=True)
+    df_train = pd.get_dummies(df_train, columns=['Sex'], drop_first=True)
+    df_test = pd.get_dummies(df_test, columns=['Sex'], drop_first=True)
 
     # Drop PassengerId, Name and Ticket features for use in model
-    predict_features_train = df_train.drop(['PassengerId', 'Survived', 'Fare',
+    predict_features_train = df_train.drop(['PassengerId', 'Survived', 'Fare', 'Parch', 'SibSp', 'Age', 'Pclass',
                                             'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
-    predict_features_test = df_test.drop(['PassengerId', 'Name', 'Fare', 'Cabin',
-                                          'Ticket', 'Embarked'], axis=1)
+    predict_features_test = df_test.drop(['PassengerId', 'Fare', 'Parch', 'SibSp', 'Age', 'Pclass',
+                                          'Name', 'Cabin', 'Ticket', 'Embarked'], axis=1)
 
     # Fit the model and make training predictions
     train_X, val_X, train_y, val_y = train_test_split(predict_features_train, y_predict, random_state=42)
-    tree_count = 1000
+    tree_count = 700
     rf_classifier: RandomForestClassifier = RandomForestClassifier(tree_count, n_jobs=-1, max_features='sqrt',
                                                                    min_samples_leaf=1, bootstrap=True, random_state=42)
     rf_classifier.fit(train_X, train_y)
