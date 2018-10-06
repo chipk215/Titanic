@@ -73,8 +73,14 @@ def run_model():
     df_test = common.map_titles_to_categories(df_test)
 
     # Generate grouped tickets feature
-    # df_train = common.identify_group_tickets(df_train)
-    # df_test = common.identify_group_tickets(df_test)
+    grouped_train = df_train.groupby(['Ticket'])
+    df_train['Ticket_Group_Size'] = df_train.Ticket.apply(lambda x: grouped_train.groups[x].size)
+
+    grouped_test = df_test.groupby(['Ticket'])
+    df_test['Ticket_Group_Size'] = df_test.Ticket.apply(lambda x: grouped_test.groups[x].size)
+
+    df_train = common.identify_group_tickets(df_train)
+    df_test = common.identify_group_tickets(df_test)
 
     # df_train = assign_passenger_fare(df_train)
     # df_test = assign_passenger_fare(df_test)
@@ -128,8 +134,8 @@ def run_model():
     for feature in missing_features:
         predict_features_test[feature] = 0
 
-    # test_predictions = rf_classifier.predict(predict_features_test)
-    # common.create_results_submission_file(df_test, test_predictions)
+    test_predictions = rf_classifier.predict(predict_features_test)
+    common.create_results_submission_file(df_test, test_predictions)
 
     return rf_classifier
 
