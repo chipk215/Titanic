@@ -34,43 +34,6 @@ def handle_embark_missing_values(df):
     return df
 
 
-def handle_missing_age_values(df):
-
-    def impute_age_from_matched_titles(title_string):
-        same_titles = df.loc[(df['Title'] == title_string) & (~df.Age.isnull())]
-        mean_age = np.mean(same_titles['Age'])
-        return mean_age
-
-    df.loc[df.Age.isnull(),'Age'] = df.loc[df.Age.isnull()].Title.apply(lambda x: impute_age_from_matched_titles(x))
-
-    return df
-
-
-def handle_age_missing_values(df):
-    """
-    Replace missing age values for passengers using the average age of persons in the same passenger class.
-
-    Presumes passenger class values = {1,2,3}
-    :param df: dataframe containing samples
-    :return: updated dataframe
-    """
-
-    handle_missing_age_values(df)
-
-    p1_ages = df[df['Pclass'] == 1]['Age']
-    p1_mean = np.mean(p1_ages)
-    p2_ages = df[df['Pclass'] == 2]['Age']
-    p2_mean = np.mean(p2_ages)
-    p3_ages = df[df['Pclass'] == 3]['Age']
-    p3_mean = np.mean(p3_ages)
-
-    df.loc[(df.Age.isnull() & (df.Pclass == 1)), 'Age'] = p1_mean
-    df.loc[(df.Age.isnull() & (df.Pclass == 2)), 'Age'] = p2_mean
-    df.loc[(df.Age.isnull() & (df.Pclass == 3)), 'Age'] = p3_mean
-
-    return df
-
-
 def handle_fare_missing_values(df):
     p1_fares = df[df['Pclass'] == 1]['Fare']
     p1_mean = np.mean(p1_fares)
@@ -117,8 +80,7 @@ def handle_missing_features(missing_features, df):
     if len(missing_features) == 0:
         return df
 
-    feature_handlers = {'Age':  handle_missing_age_values,
-                        'Fare': handle_fare_missing_values,
+    feature_handlers = {'Fare': handle_fare_missing_values,
                         'Embarked': handle_embark_missing_values,
                         'Cabin': handle_cabin_missing_values,
                         'PassengerFare': handle_missing_passenger_fares}
@@ -184,12 +146,6 @@ def map_title(title):
     return title_dictionary.get(title, "Other")
 
 
-def convert_titles_to_categories(df):
-    df['Title'] = extract_title(df)
-    df['Title'] = df.Title.apply(lambda x: map_title(x))
-    return df['Title']
-
-
 def create_results_submission_file(df_test, test_predictions):
     passenger_ids = df_test['PassengerId']
     print(type(test_predictions), test_predictions.shape)
@@ -205,3 +161,36 @@ def display_important_features(classifier, features):
     feature_importances = join_feature_name_with_importance_value(features, importances)
     print(feature_importances)
 
+
+def compute_age(row, df):
+    title = row['Title']
+    gender = row['Sex']
+    threshold = 5
+    # find all passengers with same title
+    same_titled_passengers = df[(df['Title'] == title) & (~df['Age'].isnull())]
+    count = same_titled_passengers.size
+    if count > threshold:
+        age = np.mean(same_titled_passengers['Age'])
+    else:
+        same_gender = df[(df['Sex'] == gender) & (~df['Age'].isnull())]
+        age = np.mean(same_gender['Age'])
+
+    return age
+
+
+def impute_ages(df):
+    no_ages = df[df.Age.isnull()]
+    temp = no_ages.apply(lambda x: compute_age(x, df), axis=1)
+    temp_df = pd.DataFrame(temp, columns=['Age'])
+    df.update(temp_df)
+    return df
+
+
+def extract_titles_from_names(df):
+    df['Title'] = extract_title(df)
+    return df['Title']
+
+
+def map_titles_to_categories(df):
+    df['Title'] = df.Title.apply(lambda x: map_title(x))
+    return df
